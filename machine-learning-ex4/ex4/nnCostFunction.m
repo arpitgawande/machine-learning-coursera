@@ -88,34 +88,42 @@ J = J + lambda/(2*m) * (sum(sum(Theta1(:,2:end) .^2)) + sum(sum(Theta2(:,2:end) 
 Delta1 = zeros(size(Theta1_grad));
 Delta2 = zeros(size(Theta2_grad));
 
-for i = 1:m
+%for i = 1:m
 	
 	%% Step 1 : computing the activations (z (2) , a (2) , z (3) , a (3) )
-	a_1_no_bias = X(i,:)';
-
-	a_1 = [1;a_1_no_bias]; %Adding 1 for Biases in input a_1
+	a_1_no_bias = X';
+	
+	a_1 = [ones(1, m);a_1_no_bias]; %Adding 1 for Biases in input a_1
 	z_2 = Theta1 * a_1; %a1 * Theta1' -> z(2) 
 	a_2_no_bias = sigmoid(z_2); % sigmoid(z(2)) -> g(z(2)) -> a2
 	
-	a_2 = [1; a_2_no_bias]; % Adding bias
+	a_2 = [ones(1,size(a_2_no_bias,2)); a_2_no_bias]; % Adding bias
 	z_3 = Theta2 * a_2; % a2 * Theta2' -> z(3)
 	a_3 = sigmoid(z_3); % ... sigmoid(z(3)) -> g(z(3)) -> a3 -> (θ)
 
 	%% Step 2: Calculate δ from output(final) layer
-	delta_3 = a_3 - ([1:size(a_3,2)] == y(i))';
+	for i=1:m
+		delta_3(:,i) = a_3(:,i) - ([1:size(a_3,1);] == y(i))'; 
+		%where y k ∈ {0, 1} indicates whether the current training example 
+		%belongs to class k (y(k) = 1), or if it belongs to a different class (y(k) = 0).
+	end
 	
 	%% Step 3: Calculate δ For hidden layers (only one here l = 2)
 	delta_2 = (Theta2'(2:end,:) * delta_3) .* sigmoidGradient([z_2]); %.* a_2 .* (1 - a_2); %
 	%delta_2 = delta_2(2:end);
 
 	% Step 4: Accumulate the gradient
-	Delta1 = Delta1 + (delta_2 * a_1');
-	Delta2 = Delta2 + (delta_3 * a_2');
+	Delta1 = delta_2 * a_1';
+	Delta2 = delta_3 * a_2';
 
-end
+%end
 %5. Obtain the (unregularized) gradient for the neural network cost func-tion by dividing the accumulated gradients by m:
-Theta1_grad = (1/m) * Delta1; 
-Theta2_grad = (1/m) * Delta2;
+% setting first column to 0 to exclude first column from regularzation.
+Theta1(:,1) = 0;
+Theta2(:,1) = 0;
+
+Theta1_grad = (1/m) * Delta1 + (lambda/m) * Theta1; 
+Theta2_grad = (1/m) * Delta2 + (lambda/m) * Theta2;
 % -------------------------------------------------------------
 
 % =========================================================================
